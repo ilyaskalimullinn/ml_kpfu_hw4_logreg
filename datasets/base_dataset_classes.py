@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 class BaseDataset(ABC):
@@ -28,10 +29,18 @@ class BaseDataset(ABC):
         pass
 
     def divide_into_sets(self):
-        # TODO define self.inputs_train, self.targets_train, self.inputs_valid, self.targets_valid,
+        #  define self.inputs_train, self.targets_train, self.inputs_valid, self.targets_valid,
         #  self.inputs_test, self.targets_test; you can use your code from previous homework
+        self.inputs_train, self.inputs_test, self.targets_train, self.targets_test = train_test_split(self.inputs,
+                                                                                                      self.targets,
+                                                                                                      train_size=self.train_set_percent)
 
-        pass
+        test_size = 1 - self.train_set_percent - self.valid_set_percent
+        test_size = test_size / (test_size + self.valid_set_percent)
+
+        self.inputs_valid, self.inputs_test, self.targets_valid, self.targets_test = train_test_split(self.inputs_test,
+                                                                                                      self.targets_test,
+                                                                                                      test_size=test_size)
 
     def normalization(self):
         # TODO write normalization method BONUS TASK
