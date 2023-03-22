@@ -2,7 +2,7 @@ import numpy as np
 
 
 def MSE(predictions: np.ndarray, targets: np.ndarray) -> float:
-    pass
+    return ((predictions - targets) ** 2).mean()
 
 
 def accuracy(predictions: np.ndarray, targets: np.ndarray) -> float:
