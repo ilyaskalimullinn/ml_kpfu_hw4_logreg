@@ -6,8 +6,7 @@ def MSE(predictions: np.ndarray, targets: np.ndarray) -> float:
 
 
 def accuracy(predictions: np.ndarray, targets: np.ndarray) -> float:
-    # TODO calculate accuracy
-    pass
+    return (predictions == targets).mean()
 
 def confusion_matrix(*args, **kwargs):
     # TODO build confusion matrix
