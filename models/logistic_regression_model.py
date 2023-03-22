@@ -30,10 +30,13 @@ class LogReg:
         pass
 
     def __softmax(self, model_output: np.ndarray) -> np.ndarray:
-        # TODO softmax function realisation
-        #  subtract max value of the model_output for numerical stability
-
-        pass
+        # softmax function realisation
+        # subtract max value of the model_output for numerical stability
+        y = model_output - np.max(model_output)
+        y = np.exp(y)
+        y = y / y.sum()
+        assert np.isclose(y.sum(), 1)
+        return y
 
     def get_model_confidence(self, inputs: np.ndarray) -> np.ndarray:
         # calculate model confidence (y in lecture)
