@@ -47,13 +47,15 @@ class BaseDataset(ABC):
         pass
 
     def get_data_stats(self):
-        # TODO calculate mean and std of inputs vectors of training set by each dimension
-        pass
+        # calculate mean and std of inputs vectors of training set by each dimension
+        self.means = self.inputs_train.mean()
+        self.stds = self.inputs_train.std()
 
-    def standartization(self):
-        # TODO write standardization method (use stats from __get_data_stats)
-        #   DON'T USE LOOP
-        pass
+    def standardization(self):
+        # standardization method (use stats from __get_data_stats)
+        self.inputs_test = (self.inputs_test - self.means) / self.stds
+        self.inputs_valid = (self.inputs_valid - self.means) / self.stds
+        self.inputs_train = (self.inputs_train - self.means) / self.stds
 
 
 class BaseClassificationDataset(BaseDataset):
