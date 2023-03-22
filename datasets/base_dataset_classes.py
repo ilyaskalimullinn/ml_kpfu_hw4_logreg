@@ -66,6 +66,9 @@ class BaseClassificationDataset(BaseDataset):
 
     @staticmethod
     def onehotencoding(targets: np.ndarray, number_classes: int) -> np.ndarray:
-        # TODO create matrix of onehot encoding vactors for input targets
+        # create matrix of onehot encoding vectors for input targets
         #  it is possible to do it without loop
-        pass
+
+        encoded_matrix = np.zeros(shape=(targets.shape[0], number_classes))
+        encoded_matrix[np.arange(targets.shape[0]), targets] = 1
+        return encoded_matrix
