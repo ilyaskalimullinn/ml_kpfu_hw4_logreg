@@ -45,8 +45,8 @@ class LogReg:
         return y
 
     def __get_model_output(self, inputs: np.ndarray) -> np.ndarray:
-        # TODO calculate model output (z in lecture) using matrix multiplication DONT USE LOOPS
-        pass
+        # calculate model output (z in lecture) using matrix multiplication DONT USE LOOPS
+        return self.W @ inputs.reshape(-1, 1) + self.bias
 
     def __get_gradient_w(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
         # TODO calculate gradient for w
