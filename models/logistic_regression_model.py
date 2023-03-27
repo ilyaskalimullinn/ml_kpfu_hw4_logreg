@@ -3,6 +3,7 @@ from typing import Union
 import numpy as np
 from easydict import EasyDict
 
+from datasets.base_dataset_classes import BaseClassificationDataset
 
 class LogReg:
 
@@ -34,8 +35,7 @@ class LogReg:
         # subtract max value of the model_output for numerical stability
         y = model_output - np.max(model_output)
         y = np.exp(y)
-        y = y / y.sum()
-        assert np.isclose(y.sum(), 1)
+        y = y / y.sum(axis=1).reshape(-1, 1)
         return y
 
     def get_model_confidence(self, inputs: np.ndarray) -> np.ndarray:
@@ -46,22 +46,23 @@ class LogReg:
 
     def __get_model_output(self, inputs: np.ndarray) -> np.ndarray:
         # calculate model output (z in lecture) using matrix multiplication DONT USE LOOPS
-        return self.W @ inputs.reshape(-1, 1) + self.bias
+        return inputs @ self.W.T + self.bias.T
 
     def __get_gradient_w(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
-        # TODO calculate gradient for w
+        #  calculate gradient for w
         #  slide 10 in presentation
-        pass
+        return (model_confidence - targets).T @ inputs
 
     def __get_gradient_b(self, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
-        # TODO calculate gradient for b
+        #  calculate gradient for b
         #  slide 10 in presentation
-        pass
+        return (model_confidence - targets).sum(axis=0).reshape(-1, 1)
 
     def __weights_update(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray):
-        # TODO update model weights
+        #  update model weights
         #  slide 8, item 2 in presentation for updating weights
-        pass
+        self.W = self.W - self.cfg.gamma * self.__get_gradient_w(inputs, targets, model_confidence)
+        self.bias = self.bias - self.cfg.gamma * self.__get_gradient_b(targets, model_confidence)
 
     def __gradient_descent_step(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                 epoch: int, inputs_valid: Union[np.ndarray, None] = None,
@@ -69,14 +70,17 @@ class LogReg:
         # TODO one step in Gradient descent:
         #  calculate model confidence;
         #  target function value calculation;
-        #
         #  update weights
         #   you can add some other steps if you need
         """
         :param targets_train: onehot-encoding
         :param epoch: number of loop iteration
         """
-        pass
+        # todo target function
+        target_func_value = self.__target_function_value(inputs_train, targets_train,
+                                                    self.get_model_confidence(inputs_train))
+
+        self.__weights_update(inputs_train, targets_train, self.get_model_confidence(inputs_train))
 
     def gradient_descent_epoch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                inputs_valid: Union[np.ndarray, None] = None,
@@ -114,21 +118,31 @@ class LogReg:
 
     def train(self, inputs_train: np.ndarray, targets_train: np.ndarray,
               inputs_valid: Union[np.ndarray, None] = None, targets_valid: Union[np.ndarray, None] = None):
+        targets_train = BaseClassificationDataset.onehotencoding(targets_train, self.k)
+        if targets_valid is not None:
+            targets_valid = BaseClassificationDataset.onehotencoding(targets_valid, self.k)
         getattr(self, f'gradient_descent_{self.cfg.gd_stopping_criteria.name}')(inputs_train, targets_train,
                                                                                 inputs_valid,
                                                                                 targets_valid)
 
     def __target_function_value(self, inputs: np.ndarray, targets: np.ndarray,
-                                model_confidence: Union[np.ndarray, None] = None) -> float:
+                                model_confidence: Union[np.ndarray, None] = None,
+                                model_output: Union[np.ndarray, None] = None) -> float:
         # TODO target function value calculation
         #  use formula from slide 6 for computational stability
-        pass
+        if model_output is None:
+            if model_confidence is None:
+                model_confidence = self.get_model_confidence(inputs)
+            return -np.log(model_confidence[targets.astype(bool)]).sum()
+
+        # todo
+        model_output_exp = np.exp(model_output).sum(axis=0)
 
     def __validate(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: Union[np.ndarray, None] = None):
         # TODO metrics calculation: accuracy, confusion matrix
         pass
 
     def __call__(self, inputs: np.ndarray):
-        model_confidence = self.get_model_confidence(inputs)
-        predictions = np.argmax(model_confidence, axis=0)
+        model_confidence = self.get_model_confidence(inputs.reshape(-1, self.d))
+        predictions = np.argmax(model_confidence, axis=1)
         return predictions
