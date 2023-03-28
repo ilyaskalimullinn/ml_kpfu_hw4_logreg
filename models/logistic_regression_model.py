@@ -126,17 +126,13 @@ class LogReg:
                                                                                 targets_valid)
 
     def __target_function_value(self, inputs: np.ndarray, targets: np.ndarray,
-                                model_confidence: Union[np.ndarray, None] = None,
-                                model_output: Union[np.ndarray, None] = None) -> float:
-        # TODO target function value calculation
+                                model_confidence: Union[np.ndarray, None] = None) -> float:
+        #  target function value calculation
         #  use formula from slide 6 for computational stability
-        if model_output is None:
-            if model_confidence is None:
-                model_confidence = self.get_model_confidence(inputs)
-            return -np.log(model_confidence[targets.astype(bool)]).sum()
-
-        # todo
-        model_output_exp = np.exp(model_output).sum(axis=0)
+        #  could add more optimization with usage of model output
+        if model_confidence is None:
+            model_confidence = self.get_model_confidence(inputs)
+        return -np.log(model_confidence[targets.astype(bool)]).sum()
 
     def __validate(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: Union[np.ndarray, None] = None):
         # TODO metrics calculation: accuracy, confusion matrix
