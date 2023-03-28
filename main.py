@@ -10,7 +10,7 @@ from utils.visualisation import Visualisation
 
 def main_task():
     digits = Digits(cfg)
-    logreg = LogReg(cfg, digits.k, digits.d)
+    logreg = LogReg(cfg, digits.k, digits.d, reg_coeff=0.005)
     logreg.train(digits.inputs_train, digits.targets_train, digits.inputs_valid, digits.targets_valid)
 
     predictions = logreg(digits.inputs_test)

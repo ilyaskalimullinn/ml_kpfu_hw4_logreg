@@ -8,7 +8,7 @@ from utils.metrics import accuracy, confusion_matrix
 
 class LogReg:
 
-    def __init__(self, cfg: EasyDict, number_classes: int, input_vector_dimension: int):
+    def __init__(self, cfg: EasyDict, number_classes: int, input_vector_dimension: int, reg_coeff: float = 0):
         self.k = number_classes
         self.d = input_vector_dimension
         self.cfg = cfg
@@ -17,6 +17,7 @@ class LogReg:
         self.accuracy_train = []
         self.accuracy_valid = []
         self.target_func_values = []
+        self.reg_coeff = 0
 
     def weights_init_normal(self, sigma, *args, **kwargs):
         # init weights with values from normal distribution
@@ -57,7 +58,7 @@ class LogReg:
     def __get_gradient_w(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
         #  calculate gradient for w
         #  slide 10 in presentation
-        return (model_confidence - targets).T @ inputs
+        return (model_confidence - targets).T @ inputs + self.reg_coeff * self.W
 
     def __get_gradient_b(self, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
         #  calculate gradient for b
