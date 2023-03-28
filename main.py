@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from config.logistic_regression_config import cfg
 from datasets.digits_dataset import Digits
@@ -22,9 +23,12 @@ def main_task():
 
     visualisation = Visualisation()
     visualisation.plot_accuracy(np.array(logreg.accuracy_valid), np.array(logreg.accuracy_train), cfg.nb_epoch,
-                                f"Accuracy on train set and validation set; testing accuracy is {round(test_accuracy, 2)}")
-    visualisation.plot_target_function(np.array(logreg.target_func_values), cfg.nb_epoch)
+                                f"Accuracy on train set and validation set; testing accuracy is {round(test_accuracy, 2)}",
+                                save_path=os.path.join(ROOT_DIR, 'graphs/accuracy.html'))
+    visualisation.plot_target_function(np.array(logreg.target_func_values), cfg.nb_epoch,
+                                       save_path=os.path.join(ROOT_DIR, 'graphs/target_function.html'))
 
 
 if __name__ == '__main__':
+    ROOT_DIR = os.path.abspath(os.curdir)
     main_task()
