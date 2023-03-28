@@ -124,21 +124,41 @@ class LogReg:
         pass
 
     def gradient_descent_difference_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
-                                         inputs_valid: Union[np.ndarray, None] = None,
-                                         targets_valid: Union[np.ndarray, None] = None):
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: Union[np.ndarray, None] = None,
+                               targets_valid: Union[np.ndarray, None] = None,
+                               targets_valid_encoded: Union[np.ndarray, None] = None):
         # TODO gradient_descent with stopping criteria - norm of difference between ￼w_k-1 and w_k;￼BONUS TASK
         # while not stopping criteria
         #   self.__gradient_descent_step(inputs, targets)
         pass
 
     def gradient_descent_metric_value(self, inputs_train: np.ndarray, targets_train: np.ndarray,
-                                      inputs_valid: Union[np.ndarray, None] = None,
-                                      targets_valid: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with stopping criteria - metric (accuracy, f1 score or other) value on validation set is not growing;￼
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: np.ndarray,
+                               targets_valid: np.ndarray,
+                               targets_valid_encoded: np.ndarray):
+        #  gradient_descent with stopping criteria - metric (accuracy, f1 score or other) value on validation set is not growing;￼
         #  BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+        predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
+
+        # first make it learn itself
+        epoch = 1
+        while epoch < 10:
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            epoch += 1
+
+        # now learn until accuracy falls
+        accuracy_old = 0
+        accuracy_new = accuracy(predictions, targets_valid)
+        while accuracy_new - accuracy_old > -1e-8:
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
+            accuracy_old = accuracy_new
+            accuracy_new = accuracy(predictions, targets_valid)
+            epoch += 1
 
     def train(self, inputs_train: np.ndarray, targets_train: np.ndarray,
               inputs_valid: Union[np.ndarray, None] = None, targets_valid: Union[np.ndarray, None] = None):

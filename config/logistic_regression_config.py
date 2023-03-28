@@ -14,5 +14,5 @@ cfg.weights_init_type = WeightsInitType.uniform
 cfg.weights_init_kwargs = {'sigma': 1, 'epsilon': 1}
 
 cfg.gamma = 0.01
-cfg.gd_stopping_criteria = GDStoppingCriteria.epoch
+cfg.gd_stopping_criteria = GDStoppingCriteria.metric_value
 cfg.nb_epoch = 100
