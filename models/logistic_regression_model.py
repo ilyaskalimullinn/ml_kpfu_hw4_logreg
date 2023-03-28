@@ -85,9 +85,7 @@ class LogReg:
     def gradient_descent_epoch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                inputs_valid: Union[np.ndarray, None] = None,
                                targets_valid: Union[np.ndarray, None] = None):
-        # TODO loop stopping criteria - number of iterations of gradient_descent
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
+        # loop stopping criteria - number of iterations of gradient_descent
         for epoch in range(self.cfg.nb_epoch):
             self.__gradient_descent_step(inputs_train, targets_train, epoch, inputs_valid, targets_valid)
 
