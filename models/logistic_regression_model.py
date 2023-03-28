@@ -1,9 +1,10 @@
-from typing import Union
-
 import numpy as np
 from easydict import EasyDict
+from typing import Union
 
 from datasets.base_dataset_classes import BaseClassificationDataset
+from utils.metrics import accuracy, confusion_matrix
+
 
 class LogReg:
 
@@ -65,29 +66,45 @@ class LogReg:
         self.bias = self.bias - self.cfg.gamma * self.__get_gradient_b(targets, model_confidence)
 
     def __gradient_descent_step(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                                targets_train_encoded: np.ndarray,
                                 epoch: int, inputs_valid: Union[np.ndarray, None] = None,
-                                targets_valid: Union[np.ndarray, None] = None):
+                                targets_valid: Union[np.ndarray, None] = None,
+                                targets_valid_encoded: Union[np.ndarray, None] = None):
         # TODO one step in Gradient descent:
         #  calculate model confidence;
         #  target function value calculation;
         #  update weights
-        #   you can add some other steps if you need
+        #  calculate accuracy and confusion matrix on train and valid sets
+        #  save calculated metrics
         """
         :param targets_train: onehot-encoding
         :param epoch: number of loop iteration
         """
-        # todo target function
-        target_func_value = self.__target_function_value(inputs_train, targets_train,
-                                                    self.get_model_confidence(inputs_train))
 
-        self.__weights_update(inputs_train, targets_train, self.get_model_confidence(inputs_train))
+        model_confidence_train = self.get_model_confidence(inputs_train)
+
+        target_func_value = self.__target_function_value(inputs_train, targets_train_encoded,
+                                                         model_confidence_train)
+        accuracy_train, confusion_matrix_train = self.__validate(inputs_train, targets_train, model_confidence_train)
+
+        accuracy_valid, confusion_matrix_valid = None, None
+        if inputs_valid is not None:
+            accuracy_valid, confusion_matrix_valid = self.__validate(inputs_valid, targets_valid,
+                                                                 self.get_model_confidence(inputs_valid))
+
+        self.__log_metrics(target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid, confusion_matrix_valid)
+
+        self.__weights_update(inputs_train, targets_train_encoded, model_confidence_train)
 
     def gradient_descent_epoch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                               targets_train_encoded: np.ndarray,
                                inputs_valid: Union[np.ndarray, None] = None,
-                               targets_valid: Union[np.ndarray, None] = None):
+                               targets_valid: Union[np.ndarray, None] = None,
+                               targets_valid_encoded: Union[np.ndarray, None] = None):
         # loop stopping criteria - number of iterations of gradient_descent
         for epoch in range(self.cfg.nb_epoch):
-            self.__gradient_descent_step(inputs_train, targets_train, epoch, inputs_valid, targets_valid)
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
 
     def gradient_descent_gradient_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                        inputs_valid: Union[np.ndarray, None] = None,
@@ -116,12 +133,15 @@ class LogReg:
 
     def train(self, inputs_train: np.ndarray, targets_train: np.ndarray,
               inputs_valid: Union[np.ndarray, None] = None, targets_valid: Union[np.ndarray, None] = None):
-        targets_train = BaseClassificationDataset.onehotencoding(targets_train, self.k)
+        targets_train_encoded = BaseClassificationDataset.onehotencoding(targets_train, self.k)
+        targets_valid_encoded = None
         if targets_valid is not None:
-            targets_valid = BaseClassificationDataset.onehotencoding(targets_valid, self.k)
+            targets_valid_encoded = BaseClassificationDataset.onehotencoding(targets_valid, self.k)
         getattr(self, f'gradient_descent_{self.cfg.gd_stopping_criteria.name}')(inputs_train, targets_train,
+                                                                                targets_train_encoded,
                                                                                 inputs_valid,
-                                                                                targets_valid)
+                                                                                targets_valid,
+                                                                                targets_valid_encoded)
 
     def __target_function_value(self, inputs: np.ndarray, targets: np.ndarray,
                                 model_confidence: Union[np.ndarray, None] = None) -> float:
@@ -133,8 +153,28 @@ class LogReg:
         return -np.log(model_confidence[targets.astype(bool)]).sum()
 
     def __validate(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: Union[np.ndarray, None] = None):
-        # TODO metrics calculation: accuracy, confusion matrix
-        pass
+        if model_confidence is None:
+            model_confidence = self.get_model_confidence(inputs)
+        model_predictions = np.argmax(model_confidence, axis=1)
+        acc = accuracy(model_predictions, targets)
+        matrix = confusion_matrix(model_predictions, targets, self.k)
+        return acc, matrix
+
+    def __log_metrics(self, target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid, confusion_matrix_valid):
+        print("*" * 50)
+
+        print(f"Target func value on train set: {target_func_value}, train accuracy: {accuracy_train}")
+        print("Confusion matrix on train set:")
+        print(confusion_matrix_train)
+
+        if accuracy_valid is not None:
+            print(f"Validation accuracy: {accuracy_valid}")
+
+        if confusion_matrix_valid is not None:
+            print("Confusion matrix on validation set: ")
+            print(confusion_matrix_valid)
+
+        print("*" * 50)
 
     def __call__(self, inputs: np.ndarray):
         model_confidence = self.get_model_confidence(inputs.reshape(-1, self.d))
