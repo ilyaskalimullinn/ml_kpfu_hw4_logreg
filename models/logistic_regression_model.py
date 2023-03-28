@@ -128,10 +128,15 @@ class LogReg:
                                inputs_valid: Union[np.ndarray, None] = None,
                                targets_valid: Union[np.ndarray, None] = None,
                                targets_valid_encoded: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with stopping criteria - norm of difference between ￼w_k-1 and w_k;￼BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+        # gradient_descent with stopping criteria - norm of difference between ￼w_k-1 and w_k;￼BONUS TASK
+        W_old = np.zeros_like(self.W)
+
+        epoch = 1
+        while np.linalg.norm(self.W - W_old) > self.cfg.min_difference_norm:
+            W_old = self.W
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            epoch += 1
 
     def gradient_descent_metric_value(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                targets_train_encoded: np.ndarray,
