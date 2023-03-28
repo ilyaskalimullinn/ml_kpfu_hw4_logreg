@@ -14,6 +14,10 @@ class LogReg:
         self.cfg = cfg
         getattr(self, f'weights_init_{cfg.weights_init_type.name}')(**cfg.weights_init_kwargs)
 
+        self.accuracy_train = []
+        self.accuracy_valid = []
+        self.target_func_values = []
+
     def weights_init_normal(self, sigma):
         # init weights with values from normal distribution
         self.W = np.random.normal(0, sigma, size=(self.k, self.d))
@@ -85,12 +89,16 @@ class LogReg:
 
         target_func_value = self.__target_function_value(inputs_train, targets_train_encoded,
                                                          model_confidence_train)
+        self.target_func_values.append(target_func_value)
+
         accuracy_train, confusion_matrix_train = self.__validate(inputs_train, targets_train, model_confidence_train)
+        self.accuracy_train.append(accuracy_train)
 
         accuracy_valid, confusion_matrix_valid = None, None
         if inputs_valid is not None:
             accuracy_valid, confusion_matrix_valid = self.__validate(inputs_valid, targets_valid,
                                                                  self.get_model_confidence(inputs_valid))
+            self.accuracy_valid.append(accuracy_valid)
 
         self.__log_metrics(target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid, confusion_matrix_valid)
 
