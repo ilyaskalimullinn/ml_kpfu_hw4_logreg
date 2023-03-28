@@ -74,7 +74,7 @@ class LogReg:
                                 epoch: int, inputs_valid: Union[np.ndarray, None] = None,
                                 targets_valid: Union[np.ndarray, None] = None,
                                 targets_valid_encoded: Union[np.ndarray, None] = None):
-        # TODO one step in Gradient descent:
+        #  one step in Gradient descent:
         #  calculate model confidence;
         #  target function value calculation;
         #  update weights
