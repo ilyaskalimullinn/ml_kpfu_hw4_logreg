@@ -43,8 +43,12 @@ class BaseDataset(ABC):
                                                                                                       test_size=test_size)
 
     def normalization(self):
-        # TODO write normalization method BONUS TASK
-        pass
+        # write normalization method BONUS TASK
+        mins = self.inputs_train.min()
+        scatter = self.inputs_train.max() - mins
+        self.inputs_train = (self.inputs_train - mins) / scatter
+        self.inputs_valid = (self.inputs_valid - mins) / scatter
+        self.inputs_test = (self.inputs_test - mins) / scatter
 
     def get_data_stats(self):
         # calculate mean and std of inputs vectors of training set by each dimension
