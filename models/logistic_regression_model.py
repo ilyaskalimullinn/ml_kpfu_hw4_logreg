@@ -18,14 +18,15 @@ class LogReg:
         self.accuracy_valid = []
         self.target_func_values = []
 
-    def weights_init_normal(self, sigma):
+    def weights_init_normal(self, sigma, *args, **kwargs):
         # init weights with values from normal distribution
         self.W = np.random.normal(0, sigma, size=(self.k, self.d))
         self.bias = np.random.normal(0, sigma, size=(self.k, 1))
 
-    def weights_init_uniform(self, epsilon):
-        # TODO init weights with values from uniform distribution BONUS TASK
-        pass
+    def weights_init_uniform(self, epsilon, *args, **kwargs):
+        # init weights with values from uniform distribution BONUS TASK
+        self.W = np.random.uniform(-epsilon, epsilon, size=(self.k, self.d))
+        self.bias = np.random.uniform(-epsilon, epsilon, size=(self.k, 1))
 
     def weights_init_xavier(self, n_in, n_out):
         # TODO Xavier weights initialisation BONUS TASK
