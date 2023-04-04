@@ -185,7 +185,7 @@ class LogReg:
         #  could add more optimization with usage of model output
         if model_confidence is None:
             model_confidence = self.get_model_confidence(inputs)
-        return -np.log(model_confidence[targets.astype(bool)]).sum()
+        return np.log(1 / model_confidence[targets.astype(bool)]).sum()
 
     def __validate(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: Union[np.ndarray, None] = None):
         if model_confidence is None:
