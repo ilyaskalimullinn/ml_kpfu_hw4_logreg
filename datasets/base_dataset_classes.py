@@ -52,7 +52,6 @@ class BaseDataset(ABC):
 
     def get_data_stats(self):
         # calculate mean and std of inputs vectors of training set by each dimension
-        # todo
         self.means = self.inputs_train.mean(axis=0)
         self.stds = self.inputs_train.std(axis=0)
         self.stds[self.stds == 0] = 1
