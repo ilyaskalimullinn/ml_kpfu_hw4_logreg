@@ -76,7 +76,8 @@ class LogReg:
                                 targets_train_encoded: np.ndarray,
                                 epoch: int, inputs_valid: Union[np.ndarray, None] = None,
                                 targets_valid: Union[np.ndarray, None] = None,
-                                targets_valid_encoded: Union[np.ndarray, None] = None):
+                                targets_valid_encoded: Union[np.ndarray, None] = None,
+                                update_weights: bool = True):
         #  one step in Gradient descent:
         #  calculate model confidence;
         #  target function value calculation;
@@ -100,12 +101,14 @@ class LogReg:
         accuracy_valid, confusion_matrix_valid = None, None
         if inputs_valid is not None:
             accuracy_valid, confusion_matrix_valid = self.__validate(inputs_valid, targets_valid,
-                                                                 self.get_model_confidence(inputs_valid))
+                                                                     self.get_model_confidence(inputs_valid))
             self.accuracy_valid.append(accuracy_valid)
 
-        self.__log_metrics(target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid, confusion_matrix_valid)
+        self.__log_metrics(target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid,
+                           confusion_matrix_valid)
 
-        self.__weights_update(inputs_train, targets_train_encoded, model_confidence_train)
+        if update_weights:
+            self.__weights_update(inputs_train, targets_train_encoded, model_confidence_train)
 
     def gradient_descent_epoch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                targets_train_encoded: np.ndarray,
@@ -177,6 +180,22 @@ class LogReg:
             accuracy_old = max(accuracy_new, accuracy_old)
             accuracy_new = accuracy(predictions, targets_valid)
             epoch += 1
+
+    def gradient_descent_batch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: np.ndarray,
+                               targets_valid: np.ndarray,
+                               targets_valid_encoded: np.ndarray):
+        inputs_train_split = np.array_split(inputs_train, self.cfg.nb_batch)
+        targets_train_split = np.array_split(targets_train, self.cfg.nb_batch)
+        targets_train_encoded_split = np.array_split(targets_train_encoded, self.cfg.nb_batch)
+
+        for epoch in range(self.cfg.nb_batch):
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded, update_weights=False)
+
+            self.__weights_update(inputs_train_split[epoch], targets_train_encoded_split[epoch],
+                                  self.get_model_confidence(inputs_train_split[epoch]))
 
     def train(self, inputs_train: np.ndarray, targets_train: np.ndarray,
               inputs_valid: Union[np.ndarray, None] = None, targets_valid: Union[np.ndarray, None] = None):

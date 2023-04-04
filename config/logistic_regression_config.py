@@ -14,8 +14,9 @@ cfg.weights_init_type = WeightsInitType.uniform
 cfg.weights_init_kwargs = {'sigma': 1, 'epsilon': 1}
 
 cfg.gamma = 0.01
-cfg.gd_stopping_criteria = GDStoppingCriteria.difference_norm
+cfg.gd_stopping_criteria = GDStoppingCriteria.batch
 cfg.nb_epoch = 100
+cfg.nb_batch = 70
 cfg.min_difference_norm = 1e-2
 cfg.min_metric_difference = 1e-8
 cfg.min_gradient_norm = 2
