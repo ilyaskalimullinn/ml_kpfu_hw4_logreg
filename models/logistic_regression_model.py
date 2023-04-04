@@ -31,8 +31,8 @@ class LogReg:
         self.bias = np.random.uniform(-epsilon, epsilon, size=(self.k, 1))
 
     def weights_init_xavier(self, n_in, n_out):
-        # TODO Xavier weights initialisation BONUS TASK
-        pass
+        epsilon = np.sqrt(6) / np.sqrt(n_in + n_out)
+        self.weights_init_uniform(epsilon)
 
     def weights_init_he(self, n_in):
         # TODO He weights initialisation BONUS TASK
