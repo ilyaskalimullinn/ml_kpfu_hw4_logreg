@@ -1,6 +1,7 @@
+from typing import Union
+
 import numpy as np
 from easydict import EasyDict
-from typing import Union
 
 from datasets.base_dataset_classes import BaseClassificationDataset
 from utils.metrics import accuracy, confusion_matrix
@@ -117,12 +118,17 @@ class LogReg:
                                          targets_valid, targets_valid_encoded)
 
     def gradient_descent_gradient_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                                       targets_train_encoded: np.ndarray,
                                        inputs_valid: Union[np.ndarray, None] = None,
-                                       targets_valid: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with gradient norm stopping criteria BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+                                       targets_valid: Union[np.ndarray, None] = None,
+                                       targets_valid_encoded: Union[np.ndarray, None] = None):
+        # gradient_descent with gradient norm stopping criteria BONUS TASK
+        epoch = 1
+        while np.linalg.norm(self.__get_gradient_w(inputs_train, targets_train, self.get_model_confidence(
+                inputs_train))) > self.cfg.min_gradient_norm:
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            epoch += 1
 
     def gradient_descent_difference_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
                                targets_train_encoded: np.ndarray,

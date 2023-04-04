@@ -18,6 +18,7 @@ cfg.gd_stopping_criteria = GDStoppingCriteria.difference_norm
 cfg.nb_epoch = 100
 cfg.min_difference_norm = 1e-2
 cfg.min_metric_difference = 1e-8
+cfg.min_gradient_norm = 2
 
 # how many iterations to do if criteria is not satisfied
 cfg.nb_metric_value = 5
