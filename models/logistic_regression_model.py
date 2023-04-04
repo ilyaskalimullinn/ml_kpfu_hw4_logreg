@@ -133,7 +133,12 @@ class LogReg:
         W_old = np.zeros_like(self.W)
 
         epoch = 1
-        while np.linalg.norm(self.W - W_old) > self.cfg.min_difference_norm:
+        iterations_without_growth = 0
+        while iterations_without_growth < self.cfg.nb_difference_norm:
+            if np.linalg.norm(self.W - W_old) > self.cfg.min_difference_norm:
+                iterations_without_growth += 1
+            else:
+                iterations_without_growth = 0
             W_old = self.W
             self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
                                          targets_valid, targets_valid_encoded)
@@ -153,9 +158,9 @@ class LogReg:
         epoch = 1
 
         iterations_without_growth = 0
-        while iterations_without_growth < self.cfg.nb_criteria:
+        while iterations_without_growth < self.cfg.nb_metric_value:
 
-            if accuracy_new - accuracy_old < self.cfg.min_metric_difference :
+            if accuracy_new - accuracy_old < self.cfg.min_metric_difference:
                 iterations_without_growth += 1
             else:
                 iterations_without_growth = 0
