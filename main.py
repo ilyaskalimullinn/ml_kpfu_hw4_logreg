@@ -1,7 +1,7 @@
+import os
 import pickle
 
 import numpy as np
-import os
 
 from config.logistic_regression_config import cfg
 from datasets.digits_dataset import Digits
@@ -11,7 +11,6 @@ from utils.visualisation import Visualisation
 
 
 def main_task(logreg: LogReg, digits: Digits):
-
     predictions = logreg(digits.inputs_test)
 
     test_accuracy = accuracy(predictions, digits.targets_test)
@@ -26,6 +25,32 @@ def main_task(logreg: LogReg, digits: Digits):
                                 save_path=os.path.join(ROOT_DIR, 'graphs/accuracy.html'))
     visualisation.plot_target_function(np.array(logreg.target_func_values), cfg.nb_epoch,
                                        save_path=os.path.join(ROOT_DIR, 'graphs/target_function.html'))
+
+    DIGITS_AMOUNT = 3
+
+    model_confidence = logreg.get_model_confidence(digits.inputs_test)
+    model_confidence_idx = model_confidence.max(axis=1).argsort()[::-1]
+
+    model_confidence_sorted = model_confidence[model_confidence_idx]
+    predictions_sorted = predictions[model_confidence_idx]
+    targets_sorted = digits.targets_test[model_confidence_idx]
+    inputs_sorted = digits.inputs_test[model_confidence_idx]
+
+    predictions_matched_mask = (predictions_sorted == targets_sorted)
+
+    predictions_matched_max = predictions_sorted[predictions_matched_mask][:DIGITS_AMOUNT]
+    inputs_matched_max = inputs_sorted[predictions_matched_mask][:DIGITS_AMOUNT]
+    targets_matched_max = targets_sorted[predictions_matched_mask][:DIGITS_AMOUNT]
+
+    predictions_not_matched_max = predictions_sorted[~predictions_matched_mask][:DIGITS_AMOUNT]
+    inputs_not_matched_max = inputs_sorted[~predictions_matched_mask][:DIGITS_AMOUNT]
+    targets_not_matched_max = targets_sorted[~predictions_matched_mask][:DIGITS_AMOUNT]
+
+    visualisation.plot_matched_and_unmatched(predictions_matched_max, inputs_matched_max, targets_matched_max,
+                                             predictions_not_matched_max, inputs_not_matched_max,
+                                             targets_not_matched_max, save_path='graphs/best_and_worst.html')
+
+    print(model_confidence[model_confidence_idx])
 
 
 def save_model(logreg: LogReg, path: str):
