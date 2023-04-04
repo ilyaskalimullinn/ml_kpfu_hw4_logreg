@@ -155,7 +155,7 @@ class LogReg:
         iterations_without_growth = 0
         while iterations_without_growth < self.cfg.nb_criteria:
 
-            if accuracy_new - accuracy_old > -1e-8:
+            if accuracy_new - accuracy_old < self.cfg.min_metric_difference :
                 iterations_without_growth += 1
             else:
                 iterations_without_growth = 0

@@ -19,3 +19,4 @@ cfg.nb_epoch = 100
 cfg.min_difference_norm = 1e-2
 
 cfg.nb_criteria = 5  # how many iterations to do if criteria is not satisfied
+cfg.min_metric_difference = 1e-8
