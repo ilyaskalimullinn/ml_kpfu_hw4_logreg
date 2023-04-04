@@ -31,4 +31,5 @@ def main_task():
 
 if __name__ == '__main__':
     ROOT_DIR = os.path.abspath(os.curdir)
+    np.random.seed(200)
     main_task()
