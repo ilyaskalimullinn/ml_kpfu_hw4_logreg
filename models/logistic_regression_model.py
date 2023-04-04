@@ -35,8 +35,8 @@ class LogReg:
         self.weights_init_uniform(epsilon)
 
     def weights_init_he(self, n_in):
-        # TODO He weights initialisation BONUS TASK
-        pass
+        #  He weights initialisation BONUS TASK
+        self.weights_init_normal(np.sqrt(2 / n_in))
 
     def __softmax(self, model_output: np.ndarray) -> np.ndarray:
         # softmax function realisation
