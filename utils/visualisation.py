@@ -74,10 +74,10 @@ class Visualisation:
         fig = make_subplots(cols=predictions_matched_max.shape[0], rows=2, subplot_titles=subplot_titles)
 
         for i in range(inputs_matched_max.shape[0]):
-            fig.add_trace(go.Heatmap(z=inputs_matched_max[i].reshape(8, 8), opacity=0.8, colorscale='Greens'), row=1, col=i+1)
+            fig.add_trace(go.Heatmap(z=inputs_matched_max[i].reshape(8, 8)[::-1], opacity=0.8, colorscale='Greens'), row=1, col=i+1)
 
         for i in range(inputs_not_matched_max.shape[0]):
-            fig.add_trace(go.Heatmap(z=inputs_not_matched_max[i].reshape(8, 8), opacity=0.8, colorscale='Reds'), row=2,
+            fig.add_trace(go.Heatmap(z=inputs_not_matched_max[i].reshape(8, 8)[::-1], opacity=0.8, colorscale='Reds'), row=2,
                           col=i + 1)
 
         fig.update_layout(
