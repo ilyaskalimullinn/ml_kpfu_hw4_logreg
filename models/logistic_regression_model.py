@@ -148,21 +148,22 @@ class LogReg:
         #  BONUS TASK
         predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
 
-        # first make it learn itself
-        epoch = 1
-        while epoch < 10:
-            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
-                                         targets_valid, targets_valid_encoded)
-            epoch += 1
-
-        # now learn until accuracy falls
         accuracy_old = 0
         accuracy_new = accuracy(predictions, targets_valid)
-        while accuracy_new - accuracy_old > -1e-8:
+        epoch = 1
+
+        iterations_without_growth = 0
+        while iterations_without_growth < self.cfg.nb_criteria:
+
+            if accuracy_new - accuracy_old > -1e-8:
+                iterations_without_growth += 1
+            else:
+                iterations_without_growth = 0
+
             self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
                                          targets_valid, targets_valid_encoded)
             predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
-            accuracy_old = accuracy_new
+            accuracy_old = max(accuracy_new, accuracy_old)
             accuracy_new = accuracy(predictions, targets_valid)
             epoch += 1
 
