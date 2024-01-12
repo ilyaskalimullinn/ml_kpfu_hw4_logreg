@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 class BaseDataset(ABC):
@@ -28,23 +29,38 @@ class BaseDataset(ABC):
         pass
 
     def divide_into_sets(self):
-        # TODO define self.inputs_train, self.targets_train, self.inputs_valid, self.targets_valid,
+        #  define self.inputs_train, self.targets_train, self.inputs_valid, self.targets_valid,
         #  self.inputs_test, self.targets_test; you can use your code from previous homework
+        self.inputs_train, self.inputs_test, self.targets_train, self.targets_test = train_test_split(self.inputs,
+                                                                                                      self.targets,
+                                                                                                      train_size=self.train_set_percent)
 
-        pass
+        test_size = 1 - self.train_set_percent - self.valid_set_percent
+        test_size = test_size / (test_size + self.valid_set_percent)
+
+        self.inputs_valid, self.inputs_test, self.targets_valid, self.targets_test = train_test_split(self.inputs_test,
+                                                                                                      self.targets_test,
+                                                                                                      test_size=test_size)
 
     def normalization(self):
-        # TODO write normalization method BONUS TASK
-        pass
+        # write normalization method BONUS TASK
+        mins = self.inputs_train.min()
+        scatter = self.inputs_train.max() - mins
+        self.inputs_train = (self.inputs_train - mins) / scatter
+        self.inputs_valid = (self.inputs_valid - mins) / scatter
+        self.inputs_test = (self.inputs_test - mins) / scatter
 
     def get_data_stats(self):
-        # TODO calculate mean and std of inputs vectors of training set by each dimension
-        pass
+        # calculate mean and std of inputs vectors of training set by each dimension
+        self.means = self.inputs_train.mean(axis=0)
+        self.stds = self.inputs_train.std(axis=0)
+        self.stds[self.stds == 0] = 1
 
-    def standartization(self):
-        # TODO write standardization method (use stats from __get_data_stats)
-        #   DON'T USE LOOP
-        pass
+    def standardization(self):
+        # standardization method (use stats from __get_data_stats)
+        self.inputs_test = (self.inputs_test - self.means) / self.stds
+        self.inputs_valid = (self.inputs_valid - self.means) / self.stds
+        self.inputs_train = (self.inputs_train - self.means) / self.stds
 
 
 class BaseClassificationDataset(BaseDataset):
@@ -57,6 +73,9 @@ class BaseClassificationDataset(BaseDataset):
 
     @staticmethod
     def onehotencoding(targets: np.ndarray, number_classes: int) -> np.ndarray:
-        # TODO create matrix of onehot encoding vactors for input targets
+        # create matrix of onehot encoding vectors for input targets
         #  it is possible to do it without loop
-        pass
+
+        encoded_matrix = np.zeros(shape=(targets.shape[0], number_classes))
+        encoded_matrix[np.arange(targets.shape[0]), targets] = 1
+        return encoded_matrix

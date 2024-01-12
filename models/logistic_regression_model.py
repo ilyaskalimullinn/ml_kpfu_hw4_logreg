@@ -3,36 +3,48 @@ from typing import Union
 import numpy as np
 from easydict import EasyDict
 
+from datasets.base_dataset_classes import BaseClassificationDataset
+from utils.metrics import accuracy, confusion_matrix
+
 
 class LogReg:
 
-    def __init__(self, cfg: EasyDict, number_classes: int, input_vector_dimension: int):
+    def __init__(self, cfg: EasyDict, number_classes: int, input_vector_dimension: int, reg_coeff: float = 0):
         self.k = number_classes
         self.d = input_vector_dimension
         self.cfg = cfg
         getattr(self, f'weights_init_{cfg.weights_init_type.name}')(**cfg.weights_init_kwargs)
 
-    def weights_init_normal(self, sigma):
-        # TODO init weights with values from normal distribution
-        pass
+        self.accuracy_train = []
+        self.accuracy_valid = []
+        self.target_func_values = []
+        self.reg_coeff = 0
 
-    def weights_init_uniform(self, epsilon):
-        # TODO init weights with values from uniform distribution BONUS TASK
-        pass
+    def weights_init_normal(self, sigma, *args, **kwargs):
+        # init weights with values from normal distribution
+        self.W = np.random.normal(0, sigma, size=(self.k, self.d))
+        self.bias = np.random.normal(0, sigma, size=(self.k, 1))
+
+    def weights_init_uniform(self, epsilon, *args, **kwargs):
+        # init weights with values from uniform distribution BONUS TASK
+        self.W = np.random.uniform(-epsilon, epsilon, size=(self.k, self.d))
+        self.bias = np.random.uniform(-epsilon, epsilon, size=(self.k, 1))
 
     def weights_init_xavier(self, n_in, n_out):
-        # TODO Xavier weights initialisation BONUS TASK
-        pass
+        epsilon = np.sqrt(6) / np.sqrt(n_in + n_out)
+        self.weights_init_uniform(epsilon)
 
     def weights_init_he(self, n_in):
-        # TODO He weights initialisation BONUS TASK
-        pass
+        #  He weights initialisation BONUS TASK
+        self.weights_init_normal(np.sqrt(2 / n_in))
 
     def __softmax(self, model_output: np.ndarray) -> np.ndarray:
-        # TODO softmax function realisation
-        #  subtract max value of the model_output for numerical stability
-
-        pass
+        # softmax function realisation
+        # subtract max value of the model_output for numerical stability
+        y = model_output - np.max(model_output)
+        y = np.exp(y)
+        y = y / y.sum(axis=1).reshape(-1, 1)
+        return y
 
     def get_model_confidence(self, inputs: np.ndarray) -> np.ndarray:
         # calculate model confidence (y in lecture)
@@ -41,90 +53,196 @@ class LogReg:
         return y
 
     def __get_model_output(self, inputs: np.ndarray) -> np.ndarray:
-        # TODO calculate model output (z in lecture) using matrix multiplication DONT USE LOOPS
-        pass
+        # calculate model output (z in lecture) using matrix multiplication DONT USE LOOPS
+        return inputs @ self.W.T + self.bias.T
 
     def __get_gradient_w(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
-        # TODO calculate gradient for w
+        #  calculate gradient for w
         #  slide 10 in presentation
-        pass
+        return (model_confidence - targets).T @ inputs + self.reg_coeff * self.W
 
     def __get_gradient_b(self, targets: np.ndarray, model_confidence: np.ndarray) -> np.ndarray:
-        # TODO calculate gradient for b
+        #  calculate gradient for b
         #  slide 10 in presentation
-        pass
+        return (model_confidence - targets).sum(axis=0).reshape(-1, 1)
 
     def __weights_update(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: np.ndarray):
-        # TODO update model weights
+        #  update model weights
         #  slide 8, item 2 in presentation for updating weights
-        pass
+        self.W = self.W - self.cfg.gamma * self.__get_gradient_w(inputs, targets, model_confidence)
+        self.bias = self.bias - self.cfg.gamma * self.__get_gradient_b(targets, model_confidence)
 
     def __gradient_descent_step(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                                targets_train_encoded: np.ndarray,
                                 epoch: int, inputs_valid: Union[np.ndarray, None] = None,
-                                targets_valid: Union[np.ndarray, None] = None):
-        # TODO one step in Gradient descent:
+                                targets_valid: Union[np.ndarray, None] = None,
+                                targets_valid_encoded: Union[np.ndarray, None] = None,
+                                update_weights: bool = True):
+        #  one step in Gradient descent:
         #  calculate model confidence;
         #  target function value calculation;
-        #
         #  update weights
-        #   you can add some other steps if you need
+        #  calculate accuracy and confusion matrix on train and valid sets
+        #  save calculated metrics
         """
         :param targets_train: onehot-encoding
         :param epoch: number of loop iteration
         """
-        pass
+
+        model_confidence_train = self.get_model_confidence(inputs_train)
+
+        target_func_value = self.__target_function_value(inputs_train, targets_train_encoded,
+                                                         model_confidence_train)
+        self.target_func_values.append(target_func_value)
+
+        accuracy_train, confusion_matrix_train = self.__validate(inputs_train, targets_train, model_confidence_train)
+        self.accuracy_train.append(accuracy_train)
+
+        accuracy_valid, confusion_matrix_valid = None, None
+        if inputs_valid is not None:
+            accuracy_valid, confusion_matrix_valid = self.__validate(inputs_valid, targets_valid,
+                                                                     self.get_model_confidence(inputs_valid))
+            self.accuracy_valid.append(accuracy_valid)
+
+        self.__log_metrics(target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid,
+                           confusion_matrix_valid)
+
+        if update_weights:
+            self.__weights_update(inputs_train, targets_train_encoded, model_confidence_train)
 
     def gradient_descent_epoch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                               targets_train_encoded: np.ndarray,
                                inputs_valid: Union[np.ndarray, None] = None,
-                               targets_valid: Union[np.ndarray, None] = None):
-        # TODO loop stopping criteria - number of iterations of gradient_descent
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
+                               targets_valid: Union[np.ndarray, None] = None,
+                               targets_valid_encoded: Union[np.ndarray, None] = None):
+        # loop stopping criteria - number of iterations of gradient_descent
         for epoch in range(self.cfg.nb_epoch):
-            self.__gradient_descent_step(inputs_train, targets_train, epoch, inputs_valid, targets_valid)
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
 
     def gradient_descent_gradient_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                                       targets_train_encoded: np.ndarray,
                                        inputs_valid: Union[np.ndarray, None] = None,
-                                       targets_valid: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with gradient norm stopping criteria BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+                                       targets_valid: Union[np.ndarray, None] = None,
+                                       targets_valid_encoded: Union[np.ndarray, None] = None):
+        # gradient_descent with gradient norm stopping criteria BONUS TASK
+        epoch = 1
+        while np.linalg.norm(self.__get_gradient_w(inputs_train, targets_train, self.get_model_confidence(
+                inputs_train))) > self.cfg.min_gradient_norm:
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            epoch += 1
 
     def gradient_descent_difference_norm(self, inputs_train: np.ndarray, targets_train: np.ndarray,
-                                         inputs_valid: Union[np.ndarray, None] = None,
-                                         targets_valid: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with stopping criteria - norm of difference between ￼w_k-1 and w_k;￼BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: Union[np.ndarray, None] = None,
+                               targets_valid: Union[np.ndarray, None] = None,
+                               targets_valid_encoded: Union[np.ndarray, None] = None):
+        # gradient_descent with stopping criteria - norm of difference between ￼w_k-1 and w_k;￼BONUS TASK
+        W_old = np.zeros_like(self.W)
+
+        epoch = 1
+        iterations_without_growth = 0
+        while iterations_without_growth < self.cfg.nb_difference_norm:
+            if np.linalg.norm(self.W - W_old) > self.cfg.min_difference_norm:
+                iterations_without_growth += 1
+            else:
+                iterations_without_growth = 0
+            W_old = self.W
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            epoch += 1
 
     def gradient_descent_metric_value(self, inputs_train: np.ndarray, targets_train: np.ndarray,
-                                      inputs_valid: Union[np.ndarray, None] = None,
-                                      targets_valid: Union[np.ndarray, None] = None):
-        # TODO gradient_descent with stopping criteria - metric (accuracy, f1 score or other) value on validation set is not growing;￼
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: np.ndarray,
+                               targets_valid: np.ndarray,
+                               targets_valid_encoded: np.ndarray):
+        #  gradient_descent with stopping criteria - metric (accuracy, f1 score or other) value on validation set is not growing;￼
         #  BONUS TASK
-        # while not stopping criteria
-        #   self.__gradient_descent_step(inputs, targets)
-        pass
+        predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
+
+        accuracy_old = 0
+        accuracy_new = accuracy(predictions, targets_valid)
+        epoch = 1
+
+        iterations_without_growth = 0
+        while iterations_without_growth < self.cfg.nb_metric_value:
+
+            if accuracy_new - accuracy_old < self.cfg.min_metric_difference:
+                iterations_without_growth += 1
+            else:
+                iterations_without_growth = 0
+
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded)
+            predictions = np.argmax(self.get_model_confidence(inputs_valid), axis=1)
+            accuracy_old = max(accuracy_new, accuracy_old)
+            accuracy_new = accuracy(predictions, targets_valid)
+            epoch += 1
+
+    def gradient_descent_batch(self, inputs_train: np.ndarray, targets_train: np.ndarray,
+                               targets_train_encoded: np.ndarray,
+                               inputs_valid: np.ndarray,
+                               targets_valid: np.ndarray,
+                               targets_valid_encoded: np.ndarray):
+        inputs_train_split = np.array_split(inputs_train, self.cfg.nb_batch)
+        targets_train_split = np.array_split(targets_train, self.cfg.nb_batch)
+        targets_train_encoded_split = np.array_split(targets_train_encoded, self.cfg.nb_batch)
+
+        for epoch in range(self.cfg.nb_batch):
+            self.__gradient_descent_step(inputs_train, targets_train, targets_train_encoded, epoch, inputs_valid,
+                                         targets_valid, targets_valid_encoded, update_weights=False)
+
+            self.__weights_update(inputs_train_split[epoch], targets_train_encoded_split[epoch],
+                                  self.get_model_confidence(inputs_train_split[epoch]))
 
     def train(self, inputs_train: np.ndarray, targets_train: np.ndarray,
               inputs_valid: Union[np.ndarray, None] = None, targets_valid: Union[np.ndarray, None] = None):
+        targets_train_encoded = BaseClassificationDataset.onehotencoding(targets_train, self.k)
+        targets_valid_encoded = None
+        if targets_valid is not None:
+            targets_valid_encoded = BaseClassificationDataset.onehotencoding(targets_valid, self.k)
         getattr(self, f'gradient_descent_{self.cfg.gd_stopping_criteria.name}')(inputs_train, targets_train,
+                                                                                targets_train_encoded,
                                                                                 inputs_valid,
-                                                                                targets_valid)
+                                                                                targets_valid,
+                                                                                targets_valid_encoded)
 
     def __target_function_value(self, inputs: np.ndarray, targets: np.ndarray,
                                 model_confidence: Union[np.ndarray, None] = None) -> float:
-        # TODO target function value calculation
+        #  target function value calculation
         #  use formula from slide 6 for computational stability
-        pass
+        #  could add more optimization with usage of model output
+        if model_confidence is None:
+            model_confidence = self.get_model_confidence(inputs)
+        return np.log(1 / model_confidence[targets.astype(bool)]).sum()
 
     def __validate(self, inputs: np.ndarray, targets: np.ndarray, model_confidence: Union[np.ndarray, None] = None):
-        # TODO metrics calculation: accuracy, confusion matrix
-        pass
+        if model_confidence is None:
+            model_confidence = self.get_model_confidence(inputs)
+        model_predictions = np.argmax(model_confidence, axis=1)
+        acc = accuracy(model_predictions, targets)
+        matrix = confusion_matrix(model_predictions, targets, self.k)
+        return acc, matrix
+
+    def __log_metrics(self, target_func_value, accuracy_train, confusion_matrix_train, accuracy_valid, confusion_matrix_valid):
+        print("*" * 50)
+
+        print(f"Target func value on train set: {target_func_value}, train accuracy: {accuracy_train}")
+        print("Confusion matrix on train set:")
+        print(confusion_matrix_train)
+
+        if accuracy_valid is not None:
+            print(f"Validation accuracy: {accuracy_valid}")
+
+        if confusion_matrix_valid is not None:
+            print("Confusion matrix on validation set: ")
+            print(confusion_matrix_valid)
+
+        print("*" * 50)
 
     def __call__(self, inputs: np.ndarray):
-        model_confidence = self.get_model_confidence(inputs)
-        predictions = np.argmax(model_confidence, axis=0)
+        model_confidence = self.get_model_confidence(inputs.reshape(-1, self.d))
+        predictions = np.argmax(model_confidence, axis=1)
         return predictions
